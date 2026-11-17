@@ -184,4 +184,110 @@ final class InnerTube {
     try { dur = Long.parseLong(root.optJSONObject("videoDetails").optString("lengthSeconds", "0")); } catch (Exception ignored) {}
     return new JSONObject().put("url", bestUrl).put("dur", dur);
   }
+
+  /* ---------- browse: inicio, álbumes, playlists y artistas ---------- */
+  private static void collect(Object node, String key, List<JSONObject> out) {
+    if (node instanceof JSONObject) {
+      JSONObject o = (JSONObject) node;
+      if (o.has(key)) { JSONObject v = o.optJSONObject(key); if (v != null) out.add(v); }
+      java.util.Iterator<String> it = o.keys();
+      while (it.hasNext()) collect(o.opt(it.next()), key, out);
+    } else if (node instanceof JSONArray) {
+      JSONArray a = (JSONArray) node;
+      for (int i = 0; i < a.length(); i++) collect(a.opt(i), key, out);
+    }
+  }
+
+  private static String firstText(JSONObject textObj) {
+    if (textObj == null) return "";
+    JSONArray runs = textObj.optJSONArray("runs");
+    if (runs != null && runs.length() > 0) return runs.optJSONObject(0).optString("text", "");
+    return textObj.optString("simpleText", "");
+  }
+
+  private static String thumbOf(JSONObject renderer) {
+    try {
+      JSONArray t = renderer.getJSONObject("thumbnailRenderer").getJSONObject("musicThumbnailRenderer")
+          .getJSONObject("thumbnail").getJSONArray("thumbnails");
+      return t.getJSONObject(t.length() - 1).optString("url", "");
+    } catch (Exception e) { return ""; }
+  }
+
+  private static String typeOf(String bid) {
+    if (bid == null) return "album";
+    if (bid.startsWith("UC")) return "artist";
+    if (bid.startsWith("VL") || bid.startsWith("PL")) return "playlist";
+    return "album";
+  }
+
+  /** Inicio de YouTube Music: lista de secciones con sus elementos (misma forma que usa la interfaz). */
+  static JSONArray home() throws Exception {
+    JSONObject body = new JSONObject().put("context", webContext()).put("browseId", "FEmusic_home");
+    JSONObject root = post("browse", body, WEB_UA);
+    List<JSONObject> shelves = new ArrayList<>();
+    collect(root, "musicCarouselShelfRenderer", shelves);
+    JSONArray out = new JSONArray();
+    for (JSONObject sh : shelves) {
+      JSONObject header = sh.optJSONObject("header");
+      JSONObject basic = header == null ? null : header.optJSONObject("musicCarouselShelfBasicHeaderRenderer");
+      String title = basic == null ? "" : firstText(basic.optJSONObject("title"));
+      if (title.isEmpty()) continue;
+      JSONArray items = new JSONArray();
+      JSONArray contents = sh.optJSONArray("contents");
+      if (contents != null) {
+        for (int i = 0; i < contents.length(); i++) {
+          JSONObject c = contents.optJSONObject(i);
+          if (c == null) continue;
+          JSONObject two = c.optJSONObject("musicTwoRowItemRenderer");
+          if (two == null) continue;
+          JSONObject item = parseTwoRow(two);
+          if (item != null) items.put(item);
+        }
+      }
+      if (items.length() == 0) continue;
+      out.put(new JSONObject().put("title", title).put("strapline", "").put("thumb", "")
+          .put("browseId", "").put("items", items));
+    }
+    return out;
+  }
+
+  private static JSONObject parseTwoRow(JSONObject r) throws Exception {
+    String title = firstText(r.optJSONObject("title"));
+    String sub = firstText(r.optJSONObject("subtitle"));
+    String art = thumbOf(r);
+    JSONObject nav = r.optJSONObject("navigationEndpoint");
+    if (nav != null && nav.optJSONObject("watchEndpoint") != null) {
+      String vid = nav.getJSONObject("watchEndpoint").optString("videoId", "");
+      if (vid.isEmpty()) return null;
+      return new JSONObject().put("type", "song").put("id", vid).put("title", title).put("artist", sub).put("art", art);
+    }
+    if (nav != null && nav.optJSONObject("browseEndpoint") != null) {
+      String bid = nav.getJSONObject("browseEndpoint").optString("browseId", "");
+      if (bid.isEmpty()) return null;
+      String t = typeOf(bid);
+      return new JSONObject().put("type", t).put("id", bid).put("title", title).put("artist", sub).put("art", art);
+    }
+    return null;
+  }
+
+  /** Detalle de un álbum, playlist o artista: {title, subtitle, art, tracks:[{id,title,artist,art}]}. */
+  static JSONObject detail(String browseId) throws Exception {
+    JSONObject body = new JSONObject().put("context", webContext()).put("browseId", browseId);
+    JSONObject root = post("browse", body, WEB_UA);
+    List<JSONObject> headers = new ArrayList<>();
+    collect(root, "musicDetailHeaderRenderer", headers);
+    if (headers.isEmpty()) collect(root, "musicImmersiveHeaderRenderer", headers);
+    String title = headers.isEmpty() ? "" : firstText(headers.get(0).optJSONObject("title"));
+    String subtitle = headers.isEmpty() ? "" : firstText(headers.get(0).optJSONObject("subtitle"));
+    String art = headers.isEmpty() ? "" : thumbOf(headers.get(0));
+    List<JSONObject> rows = new ArrayList<>();
+    collect(root, "musicResponsiveListItemRenderer", rows);
+    JSONArray tracks = new JSONArray();
+    for (JSONObject r : rows) {
+      JSONObject t = parseRow(r);
+      if (t != null) tracks.put(new JSONObject().put("id", t.getString("id")).put("title", t.getString("title"))
+          .put("artist", t.getString("artist")).put("art", t.getString("art")));
+    }
+    return new JSONObject().put("title", title).put("subtitle", subtitle).put("art", art).put("tracks", tracks);
+  }
 }

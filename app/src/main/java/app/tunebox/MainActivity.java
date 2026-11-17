@@ -862,6 +862,30 @@ setInterval(function(){
         } }, "innertube-stream").start();
       } });
     }
+    @JavascriptInterface public void innerHome(final String unused, final String cb) {
+      if (cb == null || cb.length() > 40) return;
+      runOnUiThread(new Runnable() { public void run() {
+        if (!ownPage()) { cbReply(cb, errJson("Acceso denegado")); return; }
+        new Thread(new Runnable() { public void run() {
+          String out;
+          try { out = new JSONObject().put("sections", InnerTube.home()).toString(); }
+          catch (Exception e) { out = errJson(String.valueOf(e.getMessage())); }
+          cbReply(cb, out);
+        } }, "innertube-home").start();
+      } });
+    }
+    @JavascriptInterface public void innerDetail(final String bid, final String cb) {
+      if (bid == null || !bid.matches("[A-Za-z0-9_-]{2,60}") || cb == null || cb.length() > 40) return;
+      runOnUiThread(new Runnable() { public void run() {
+        if (!ownPage()) { cbReply(cb, errJson("Acceso denegado")); return; }
+        new Thread(new Runnable() { public void run() {
+          String out;
+          try { out = InnerTube.detail(bid).toString(); }
+          catch (Exception e) { out = errJson(String.valueOf(e.getMessage())); }
+          cbReply(cb, out);
+        } }, "innertube-detail").start();
+      } });
+    }
     /* Vídeo de un podcast: página HTML5 con el mismo protocolo (tbp / YB.ev) que el reproductor de YouTube */
     @JavascriptInterface public void ytVideo(final String url) {
       if (url == null || url.length() > 2000 || !url.startsWith("https://")) return;
