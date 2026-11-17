@@ -1,0 +1,6 @@
+{
+  "name": "Tunebox",
+  "description": "Reproductor musical con biblioteca local, catálogo online y diseño oscuro.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
