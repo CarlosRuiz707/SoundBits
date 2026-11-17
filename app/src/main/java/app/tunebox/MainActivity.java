@@ -824,26 +824,43 @@ setInterval(function(){
         yw.setVisibility(View.GONE);
       } });
     }
-    /* ---- Cliente nativo de YouTube Music (InnerTube): se llama desde la interfaz con un id de respuesta ---- */
+    /* ---- Cliente nativo de YouTube Music (InnerTube): privado ----
+       Solo responde a la página de la propia app (file:///android_asset/). Ninguna otra página
+       ni otra app puede usarlo: el WebView de YouTube (yw) no tiene este puente y la navegación
+       externa está bloqueada. */
+    private String errJson(String m) { return "{\"error\":" + JSONObject.quote(m) + "}"; }
+    private void cbReply(final String cb, final String json) {
+      runOnUiThread(new Runnable() { public void run() {
+        js("window.tbCb&&tbCb(" + JSONObject.quote(cb) + "," + JSONObject.quote(json) + ")");
+      } });
+    }
+    private boolean ownPage() {
+      String u = w == null ? null : w.getUrl();
+      return u != null && u.startsWith("file:///android_asset/");
+    }
     @JavascriptInterface public void innerSearch(final String q, final String cb) {
       if (q == null || q.length() > 200 || cb == null || cb.length() > 40) return;
-      new Thread(new Runnable() { public void run() {
-        String out;
-        try { out = new JSONObject().put("items", InnerTube.search(q)).toString(); }
-        catch (Exception e) { out = new JSONObject().put("error", String.valueOf(e.getMessage())).toString(); }
-        final String res = out;
-        runOnUiThread(new Runnable() { public void run() { js("window.tbCb&&tbCb(" + JSONObject.quote(cb) + "," + JSONObject.quote(res) + ")"); } });
-      } }, "innertube-search").start();
+      runOnUiThread(new Runnable() { public void run() {
+        if (!ownPage()) { cbReply(cb, errJson("Acceso denegado")); return; }
+        new Thread(new Runnable() { public void run() {
+          String out;
+          try { out = new JSONObject().put("items", InnerTube.search(q)).toString(); }
+          catch (Exception e) { out = errJson(String.valueOf(e.getMessage())); }
+          cbReply(cb, out);
+        } }, "innertube-search").start();
+      } });
     }
     @JavascriptInterface public void innerStream(final String vid, final String cb) {
       if (vid == null || !vid.matches("[A-Za-z0-9_-]{11}") || cb == null || cb.length() > 40) return;
-      new Thread(new Runnable() { public void run() {
-        String out;
-        try { out = InnerTube.streamUrl(vid).toString(); }
-        catch (Exception e) { out = new JSONObject().put("error", String.valueOf(e.getMessage())).toString(); }
-        final String res = out;
-        runOnUiThread(new Runnable() { public void run() { js("window.tbCb&&tbCb(" + JSONObject.quote(cb) + "," + JSONObject.quote(res) + ")"); } });
-      } }, "innertube-stream").start();
+      runOnUiThread(new Runnable() { public void run() {
+        if (!ownPage()) { cbReply(cb, errJson("Acceso denegado")); return; }
+        new Thread(new Runnable() { public void run() {
+          String out;
+          try { out = InnerTube.streamUrl(vid).toString(); }
+          catch (Exception e) { out = errJson(String.valueOf(e.getMessage())); }
+          cbReply(cb, out);
+        } }, "innertube-stream").start();
+      } });
     }
     /* Vídeo de un podcast: página HTML5 con el mismo protocolo (tbp / YB.ev) que el reproductor de YouTube */
     @JavascriptInterface public void ytVideo(final String url) {

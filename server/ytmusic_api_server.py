@@ -86,6 +86,20 @@ def need_write():
     return None
 
 
+@app.before_request
+def _private_guard():
+    """Con TUNEBOX_API_KEY definida, nadie sin la clave usa el servidor (salvo /health)."""
+    if request.method == 'OPTIONS' or request.path == '/health':
+        return None
+    key = os.environ.get('TUNEBOX_API_KEY')
+    if not key:
+        return None
+    sent = request.headers.get('X-Tunebox-Key', '') or request.args.get('key', '')
+    if not hmac.compare_digest(sent.encode(), key.encode()):
+        return jsonify({'error': 'Acceso privado: clave incorrecta o ausente.'}), 401
+    return None
+
+
 @app.after_request
 def cors(resp):
     resp.headers['Access-Control-Allow-Origin'] = '*'
