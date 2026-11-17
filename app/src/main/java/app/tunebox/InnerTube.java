@@ -29,7 +29,7 @@ final class InnerTube {
   /* ---------- transporte ---------- */
   private static JSONObject post(String endpoint, JSONObject body, String ua) throws Exception { return post(endpoint, body, ua, true); }
 
-  private static JSONObject post(String endpoint, JSONObject body, String ua, boolean auth) throws Exception {
+  private static JSONObject post(String endpoint, JSONObject body, String ua, boolean useSession) throws Exception {
     HttpURLConnection c = (HttpURLConnection) new URL(BASE + endpoint + "?key=" + KEY + "&prettyPrint=false").openConnection();
     c.setRequestMethod("POST");
     c.setConnectTimeout(10000);
@@ -38,7 +38,7 @@ final class InnerTube {
     c.setRequestProperty("Content-Type", "application/json");
     c.setRequestProperty("User-Agent", ua);
     c.setRequestProperty("Origin", "https://music.youtube.com");
-    if (auth && GoogleSession.cookie != null) {
+    if (useSession && GoogleSession.cookie != null) {
       c.setRequestProperty("Cookie", GoogleSession.cookie);
       String auth = GoogleSession.authorization(GoogleSession.cookie, "https://music.youtube.com");
       if (auth != null) c.setRequestProperty("Authorization", auth);
