@@ -830,7 +830,14 @@ function yplay(i){var it=YTCUR[i];if(!it)return;if(!AN){window.open("https://www
 function ytmBase(){return(S.ytm||"").trim().replace(/\/+$/,"")}
 function ytmFetch(path,opt){opt=opt||{};opt.headers=Object.assign({"Content-Type":"application/json"},S.ytmk?{"X-Tunebox-Key":S.ytmk}:{});
   return fetch(ytmBase()+path,opt).then(function(r){return r.json().then(function(d){if(!r.ok)throw Error(d&&d.error?d.error:"Error "+r.status);return d})})}
+/* Llamadas al cliente nativo (InnerTube) con respuesta por id */
+var INCB={},INC=0;
+window.tbCb=function(id,json){var c=INCB[id];if(!c)return;delete INCB[id];try{var d=JSON.parse(json);d&&d.error?c.rej(Error(d.error)):c.res(d)}catch(e){c.rej(e)}};
+function innerCall(fn,arg){return new Promise(function(res,rej){var id="c"+(++INC);INCB[id]={res:res,rej:rej};try{Android[fn](arg,id)}catch(e){delete INCB[id];rej(e)}})}
+function hasNative(){return AN&&!!(window.Android&&Android.innerSearch&&Android.innerStream)}
+function streamFor(id){if(hasNative())return innerCall("innerStream",id).catch(function(){return ytmBase()?ytmFetch("/stream/"+enc(id)):Promise.reject(Error("sin stream"))});return ytmFetch("/stream/"+enc(id))}
 function ytSearch(t){
+  if(hasNative())return innerCall("innerSearch",t).then(function(d){return(d.items||[]).filter(function(x){return x.id}).map(function(x){return{id:x.id,title:x.title||"",artist:x.artist||"",art:x.art||""}})}).catch(function(){if(!ytmBase())return[];return ytmFetch("/search?type=songs&limit=15&q="+enc(t)).then(function(d){return(Array.isArray(d)?d:[]).filter(function(x){return x.id})})});
   if(ytmBase())return ytmFetch("/search?type=songs&limit=15&q="+enc(t)).then(function(d){return(Array.isArray(d)?d:[]).filter(function(x){return x.id}).map(function(x){return{id:x.id,title:x.title||"",artist:x.artist||"",art:x.art||""}})});
   var url=(AN?"https://tb.local/s?q="+enc(t)+"&key="+enc(S.ytk):"https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&videoEmbeddable=true&videoSyndicated=true&videoCategoryId=10&maxResults=15&q="+enc(t)+"&key="+enc(S.ytk));
   return fetch(url).then(function(r){return r.json().then(function(d){
@@ -854,7 +861,7 @@ function ytHtml(){var term=q.trim();if(term.length<2){YTCUR=[];return""}
   if(YTL==term)return'<h3 style="margin-top:20px">YouTube</h3><div class="a" style="padding:10px 0">Buscando en YouTube…</div>';
   return'<h3 style="margin-top:20px">YouTube</h3>'+(YTE?'<div class="a" style="margin:4px 0">'+esc(YTE)+'</div>':'')+'<button class="pri ytq" data-ytq="1">Buscar «'+esc(term)+'» en YouTube</button>'}
 function ytRefresh(){var b=$("yt-results");if(b)b.innerHTML=ytHtml()}
-function ytRun(){var term=q.trim();if(term.length<2||(!S.ytk&&!ytmBase())||YTR[term]||YTL==term){ytRefresh();return}
+function ytRun(){var term=q.trim();if(term.length<2||(!S.ytk&&!ytmBase()&&!hasNative())||YTR[term]||YTL==term){ytRefresh();return}
   YTL=term;YTE="";ytRefresh();
   ytSearch(term).then(function(it){YTR[term]=it}).catch(function(e){YTE="No se pudo buscar en YouTube: "+(e&&e.message||e)}).then(function(){if(YTL==term)YTL="";ytRefresh()})}
 document.addEventListener("keydown",function(e){if(e.key=="Enter"&&e.target&&e.target.id=="q"&&tab=="search")ytRun()});
@@ -870,8 +877,8 @@ function load(){var t=queue[qi];if(!t)return;LAZY=false;
 /* Audio nativo para YouTube: el servidor da la URL directa y ExoPlayer la reproduce; si falla, se usa el reproductor incrustado */
 function ytPlay(t){
   if(t.vp){ytVideoPod(t);return}
-  if(!NPA||!ytmBase()||S.ytnat===false||S.vid){ytLoad(t);return}
-  ytmFetch("/stream/"+enc(t.id)).then(function(d){
+  if(!NPA||S.ytnat===false||S.vid||(!ytmBase()&&!hasNative())){ytLoad(t);return}
+  streamFor(t.id).then(function(d){
     if(!d||!d.url)throw Error("sin stream");
     npLeave("n");ENG="n";NPQ=false;NPS.cur=0;NPS.dur=d.dur||t.dur||0;NPS.paused=false;
     Android.npLoad(JSON.stringify({l:[[d.url,t.title||"",t.artist||"","","0","",t.k||String(t.id)]],i:0,m:0,s:0,r:0,v:speed,e:S.eq||[0,0,0]}));

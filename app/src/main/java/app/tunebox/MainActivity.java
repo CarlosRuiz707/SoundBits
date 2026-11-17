@@ -824,6 +824,27 @@ setInterval(function(){
         yw.setVisibility(View.GONE);
       } });
     }
+    /* ---- Cliente nativo de YouTube Music (InnerTube): se llama desde la interfaz con un id de respuesta ---- */
+    @JavascriptInterface public void innerSearch(final String q, final String cb) {
+      if (q == null || q.length() > 200 || cb == null || cb.length() > 40) return;
+      new Thread(new Runnable() { public void run() {
+        String out;
+        try { out = new JSONObject().put("items", InnerTube.search(q)).toString(); }
+        catch (Exception e) { out = new JSONObject().put("error", String.valueOf(e.getMessage())).toString(); }
+        final String res = out;
+        runOnUiThread(new Runnable() { public void run() { js("window.tbCb&&tbCb(" + JSONObject.quote(cb) + "," + JSONObject.quote(res) + ")"); } });
+      } }, "innertube-search").start();
+    }
+    @JavascriptInterface public void innerStream(final String vid, final String cb) {
+      if (vid == null || !vid.matches("[A-Za-z0-9_-]{11}") || cb == null || cb.length() > 40) return;
+      new Thread(new Runnable() { public void run() {
+        String out;
+        try { out = InnerTube.streamUrl(vid).toString(); }
+        catch (Exception e) { out = new JSONObject().put("error", String.valueOf(e.getMessage())).toString(); }
+        final String res = out;
+        runOnUiThread(new Runnable() { public void run() { js("window.tbCb&&tbCb(" + JSONObject.quote(cb) + "," + JSONObject.quote(res) + ")"); } });
+      } }, "innertube-stream").start();
+    }
     /* Vídeo de un podcast: página HTML5 con el mismo protocolo (tbp / YB.ev) que el reproductor de YouTube */
     @JavascriptInterface public void ytVideo(final String url) {
       if (url == null || url.length() > 2000 || !url.startsWith("https://")) return;
