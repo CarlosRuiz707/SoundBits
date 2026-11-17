@@ -54,5 +54,6 @@
                 android:name="android.appwidget.provider"
                 android:resource="@xml/widget_info"/>
         </receiver>
+            <activity android:name="app.tunebox.LoginActivity" android:exported="false" android:theme="@android:style/Theme.DeviceDefault.NoActionBar" />
     </application>
 </manifest>

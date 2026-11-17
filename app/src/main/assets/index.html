@@ -601,6 +601,7 @@ function yhead(sec,pl,quick,first){var st=sec.strapline||(first?"Música para em
 function ysection(sec,first){var its=sec.items.slice(0,24);if(!its.length)return"";
   var quick=its.length>=4&&its.every(function(x){return x.type=="song"}),vids=its.filter(function(x){return x.type=="video"}).length*2>=its.length,l=ylst(its);
   return yhead(sec,l,quick,first&&quick)+(quick?yqlist(its.slice(0,16),l):ycards(its,vids))}
+window.onAuth=function(on){YH=null;YHT=0;YHE="";toast(on?"Sesión iniciada":"Sesión cerrada");if(tab=="set")render();if(tab=="home"&&!ytOpen&&!open&&!MC)render();ytHomeLoad(true)};
 function ytHomeLoad(force){if(!(ytmBase()||hasNative())||YHL)return;if(!force&&Date.now()-YHT<60000)return;YHT=Date.now();YHL=true;YHE="";
   (hasNative()?innerCall("innerHome","").then(function(d){return d.sections||[]}):ytmFetch("/home?rows=8")).then(function(d){YH={t:Date.now(),s:Array.isArray(d)?d:[]};YHL=false;try{localStorage.setItem("tb4yh",JSON.stringify(YH))}catch(e){}if(tab=="home"&&!ytOpen&&!open&&!MC)render()})
   .catch(function(e){YHE=(e&&e.message)||"Error";YHL=false;if(tab=="home"&&!ytOpen&&!open&&!MC)render()})}
@@ -681,6 +682,8 @@ document.addEventListener("click",function(e){var g,t=e.target;
   if(g=t.closest("[data-fola]")){folA(g.dataset.fola);render();return}
   if(g=t.closest("[data-dlp]")){dlPlay(g.dataset.dlp);return}
   if(g=t.closest("[data-mi]")){mplay(+g.dataset.mi);return}
+  if(g=t.closest("[data-gsign]")){try{Android.googleLogin()}catch(e){toast("Disponible en la app de Android")};return}
+  if(g=t.closest("[data-gout]")){try{Android.googleLogout()}catch(e){};return}
   if(g=t.closest("[data-bell]")){toast("No tienes notificaciones nuevas");return}
   if(g=t.closest("[data-yhr]")){ytHomeLoad(true);render();return}
   if(g=t.closest("[data-yback]")){ytOpen=null;render();return}
@@ -850,7 +853,7 @@ window.ytEv=function(str){var m;try{m=JSON.parse(str)}catch(e){return}if(!isYT()
   else if(m.e=="err"){if(++YV.errs>3){YV.errs=0;ytSet(2);toast("No se pudo reproducir estos vídeos aquí");return}toast("Este vídeo no se puede reproducir aquí. Saltando…");setTimeout(next,800)}};
 function ytTrack(x){var t=mk({title:x.title,artist:x.artist,album:"YouTube",dur:0,genre:"YouTube",added:Date.now()});t.yt=x.id;t.art=x.art||"";t.url="https://www.youtube.com/watch?v="+x.id;t.src="";t.resume=0;return t}
 function yplay(i){var it=YTCUR[i];if(!it)return;if(!AN){window.open("https://www.youtube.com/watch?v="+it.id);return}CTX="YouTube";play(YTCUR.map(ytTrack),i)}
-function ytmBase(){return(S.ytm||"").trim().replace(/\/+$/,"")}
+function ytmBase(){return ""}
 function ytmFetch(path,opt){opt=opt||{};opt.headers=Object.assign({"Content-Type":"application/json"},S.ytmk?{"X-Tunebox-Key":S.ytmk}:{});
   return fetch(ytmBase()+path,opt).then(function(r){return r.json().then(function(d){if(!r.ok)throw Error(d&&d.error?d.error:"Error "+r.status);return d})})}
 /* Llamadas al cliente nativo (InnerTube) con respuesta por id */
@@ -877,7 +880,7 @@ function ytNew(v){var n=($("ynm")&&$("ynm").value.trim())||"Tunebox";closeSheet(
   ytmFetch("/playlist/create",{method:"POST",body:JSON.stringify({title:n})}).then(function(d){return ytmFetch("/playlist/add",{method:"POST",body:JSON.stringify({playlistId:d.playlistId,videoId:v})})}).then(function(){toast("Playlist «"+n+"» creada en YouTube Music")}).catch(function(e){toast("No se pudo crear: "+(e&&e.message||e))})}
 function yrow(x,i){return '<div class="row" data-yi="'+i+'">'+rowCv(x.title,x.art)+'<div class="m"><div class="t">'+esc(x.title)+'</div><div class="a">'+esc(x.artist)+' · YouTube</div></div>'+(ytmBase()?'<button class="ib" data-yadd="'+i+'" aria-label="Guardar en una playlist de YouTube Music">＋</button>':'')+'<button class="ib" data-yi="'+i+'" aria-label="Reproducir">▶</button></div>'}
 function ytHtml(){var term=q.trim();if(term.length<2){YTCUR=[];return""}
-  if(!S.ytk&&!ytmBase())return'<h3 style="margin-top:20px">YouTube</h3><div class="a" style="margin:4px 0 8px">Conecta tu servidor de YouTube Music o añade una clave de YouTube Data API para buscar canciones completas.</div><button class="pri ytq" data-ytset="1">Abrir ajustes</button>';
+  if(!hasNative()&&!ytmBase())return'<div class="a" style="margin:4px 0 8px">La búsqueda de YouTube Music no está disponible en este dispositivo.</div>';
   var r=YTR[term];
   if(r){YTCUR=r;return'<h3 style="margin-top:20px">YouTube</h3>'+(r.length?r.map(yrow).join(""):'<div class="a" style="padding:10px 0">Sin resultados en YouTube.</div>')}
   YTCUR=[];
@@ -980,17 +983,20 @@ function sbCard(){return tg("sb","Omitir segmentos en YouTube y YouTube Music")+
 function bgCard(){return tg("vid","Mostrar vídeo cuando esté disponible")+'<div class="a" style="margin:2px 0 10px">YouTube y los podcasts con vídeo se ven en pantalla. Solo audio sigue usando el motor nativo. Se aplica a la siguiente pista.</div>'+tg("nat","Motor nativo (ExoPlayer)")+'<div class="a" style="margin:2px 0 8px">La música sigue sonando aunque Android cierre la pantalla de la app, con cola, siguiente y anterior desde la notificación. Al cambiarlo se detiene la canción actual.</div>'+tg("persist","Mantener la reproducción activa en segundo plano")+'<div class="a" style="margin:2px 0 8px">Con la pantalla apagada o la app minimizada, el servicio sigue en primer plano (también en pausa) para que Android no lo cierre. Para mayor estabilidad, excluye la app del ahorro de batería.</div><button data-batt="1">Excluir de ahorro de batería</button>'}
 function settingsView(){
   var eqBtn=function(v,l){return '<button data-eqp="'+v+'">'+l+'</button>'};
+  var cuenta=(AN&&Android.authOn&&Android.authOn())
+    ?'<div class="a" style="margin:2px 0 10px">Sesión iniciada. Tus recomendaciones se personalizan con tu cuenta.</div><button data-gout="1">Cerrar sesión</button>'
+    :'<div class="a" style="margin:2px 0 10px">Inicia sesión para ver recomendaciones personalizadas en tu inicio.</div><button class="pri" data-gsign="1">Iniciar sesión con Google</button>';
   return '<div class="th"><button class="ib" data-avback="1">'+ICO.back+'</button><h1>Ajustes</h1></div>'
+  +'<div class="card"><b>Cuenta</b>'+cuenta+'</div>'
   +'<div class="card"><b>Reproducción</b>'+rng("vol",0,100,"Volumen","%")
     +'<div class="a" style="margin-top:12px">Ecualizador</div>'+rng("eq0",-12,12,"Graves"," dB")+rng("eq1",-12,12,"Medios"," dB")+rng("eq2",-12,12,"Agudos"," dB")
     +'<div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">'+eqBtn("0,0,0","Plano")+eqBtn("8,0,-2","Más graves")+eqBtn("-3,5,2","Voces")+eqBtn("-2,0,7","Brillante")+'</div></div>'
   +'<div class="card"><b>Biblioteca</b>'+seg("sort",[["az","Alfabético"],["added","Recién añadidas"]])+'</div>'
-  +'<div class="card"><b>SponsorBlock</b>'+sbCard()+'</div>'
-  +'<div class="card"><b>Segundo plano y motor</b>'+bgCard()+'</div>'
-  +'<div class="card"><b>Servidor de YouTube Music (opcional)</b><div class="a" style="margin:2px 0 8px">Solo hace falta para añadir canciones a tus playlists de YouTube Music. La búsqueda y la reproducción funcionan sin él.</div><input type="text" id="ytm" value="'+esc(S.ytm||"")+'" placeholder="https://tu-servidor.com" autocomplete="off"><input type="password" id="ytmk" value="'+esc(S.ytmk||"")+'" placeholder="Clave del servidor" autocomplete="off" style="margin-top:8px"></div>'
-  +'<div class="card"><b>YouTube Data API</b><div class="a" style="margin:2px 0 8px">Clave opcional de Google Cloud. Se guarda solo en este teléfono.</div><input type="password" id="ytk" value="'+esc(S.ytk||"")+'" placeholder="AIza…" autocomplete="off"></div>'
-  +'<div class="card"><b>Datos</b>'+tg("online","Buscar carátulas y géneros en internet")+tg("wifiOnly","Descargar solo con Wi‑Fi")+'<div class="a" style="margin-top:6px">Espacio usado: '+cacheMB()+' MB</div><div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap"><button data-prefetch="1">Descargar carátulas</button><button data-clrart="1">Borrar caché</button><button data-reset="1">Restablecer ajustes</button></div></div>'
-  +'<div class="card"><b>Acerca de</b><div class="a" style="margin:2px 0 10px">SoundBits · versión '+verTxt()+'</div><button class="pri" data-upd="1">Buscar actualizaciones</button><div class="a" style="margin-top:12px">Repositorio de GitHub</div><input type="text" id="repo" value="'+esc(S.repo)+'"></div>';
+  +'<div class="card"><b>Contenido</b>'+sbCard()+'</div>'
+  +'<div class="card"><b>Reproducción en segundo plano</b>'+bgCard()+'</div>'
+  +'<div class="card"><b>Datos</b>'+tg("online","Buscar carátulas y géneros en internet")+tg("wifiOnly","Descargar solo con Wi‑Fi")
+    +'<div class="a" style="margin-top:6px">Espacio usado: '+cacheMB()+' MB</div>'
+    +'<div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap"><button data-prefetch="1">Descargar carátulas</button><button data-clrart="1">Borrar caché</button><button data-reset="1">Restablecer ajustes</button></div></div>';
 }
 function recs(){return recents.map(function(k){return lib.filter(function(x){return x.k==k})[0]}).filter(Boolean).slice(0,10)}
 function tiles(){return '<div class="grid"><div class="tile" data-open="fav_0"><div class="cv" style="background:linear-gradient(135deg,#450af5,#8e8ee5)">♥</div><b>Te gustan</b></div><div class="tile" data-shuffle="1"><div class="cv" style="background:linear-gradient(135deg,#5e5ce6,#0a84ff)">⇄</div><b>Aleatorio</b></div>'+lists.slice(0,4).map(function(p,i){return '<div class="tile" data-open="list_'+i+'">'+cover(p.name)+'<b>'+esc(p.name)+'</b></div>'}).join("")+'</div>'}

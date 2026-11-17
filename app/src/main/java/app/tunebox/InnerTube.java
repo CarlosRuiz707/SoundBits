@@ -36,6 +36,12 @@ final class InnerTube {
     c.setRequestProperty("Content-Type", "application/json");
     c.setRequestProperty("User-Agent", ua);
     c.setRequestProperty("Origin", "https://music.youtube.com");
+    if (GoogleSession.cookie != null) {
+      c.setRequestProperty("Cookie", GoogleSession.cookie);
+      String auth = GoogleSession.authorization(GoogleSession.cookie, "https://music.youtube.com");
+      if (auth != null) c.setRequestProperty("Authorization", auth);
+      c.setRequestProperty("X-Goog-AuthUser", "0");
+    }
     byte[] data = body.toString().getBytes(StandardCharsets.UTF_8);
     try (OutputStream os = c.getOutputStream()) { os.write(data); }
     int code = c.getResponseCode();

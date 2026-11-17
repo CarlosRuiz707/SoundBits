@@ -69,6 +69,7 @@ public class MainActivity extends Activity {
 
   protected void onCreate(Bundle b) {
     super.onCreate(b);
+    GoogleSession.load(this);
     inst = this;
     initAuthentication();
     boolean dark = (getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES;
@@ -251,6 +252,7 @@ public class MainActivity extends Activity {
 
   public void onRequestPermissionsResult(int rc, String[] p, int[] g) { w.evaluateJavascript("window.scanNative&&scanNative()", null); }
   protected void onActivityResult(int rc, int res, Intent d) {
+    if (rc == 77 && res == RESULT_OK) { GoogleSession.load(this); js("window.onAuth&&onAuth(true)"); }
     if (rc == 1 && cb != null) { cb.onReceiveValue(WebChromeClient.FileChooserParams.parseResult(res, d)); cb = null; }
   }
   public void onBackPressed() {
@@ -886,6 +888,20 @@ setInterval(function(){
         } }, "innertube-detail").start();
       } });
     }
+    /* ---- Cuenta de Google (recomendaciones personalizadas) ---- */
+    @JavascriptInterface public void googleLogin() {
+      runOnUiThread(new Runnable() { public void run() {
+        startActivityForResult(new Intent(MainActivity.this, LoginActivity.class), 77);
+      } });
+    }
+    @JavascriptInterface public void googleLogout() {
+      runOnUiThread(new Runnable() { public void run() {
+        GoogleSession.clear(MainActivity.this);
+        CookieManager.getInstance().removeAllCookies(null);
+        js("window.onAuth&&onAuth(false)");
+      } });
+    }
+    @JavascriptInterface public boolean authOn() { return GoogleSession.on(); }
     /* Vídeo de un podcast: página HTML5 con el mismo protocolo (tbp / YB.ev) que el reproductor de YouTube */
     @JavascriptInterface public void ytVideo(final String url) {
       if (url == null || url.length() > 2000 || !url.startsWith("https://")) return;
