@@ -26,7 +26,7 @@ public class PlayWidget extends AppWidgetProvider {
       RemoteViews v = new RemoteViews(c.getPackageName(), R.layout.widget);
       v.setTextViewText(R.id.w_title, live ? PlayService.title : "SoundBits");
       v.setTextViewText(R.id.w_artist, live ? PlayService.artist : "Toca para reproducir");
-      if (live && PlayService.art != null) v.setImageViewBitmap(R.id.w_art, PlayService.art); else v.setImageViewResource(R.id.w_art, R.drawable.ic_launcher);
+      if (live && PlayService.art != null) v.setImageViewBitmap(R.id.w_art, PlayService.art); else v.setImageViewResource(R.id.w_art, R.mipmap.ic_launcher);
       v.setImageViewResource(R.id.w_play, (live && PlayService.playing) ? android.R.drawable.ic_media_pause : android.R.drawable.ic_media_play);
       v.setOnClickPendingIntent(R.id.w_root, ac(c, null));
       v.setOnClickPendingIntent(R.id.w_art, ac(c, null));
