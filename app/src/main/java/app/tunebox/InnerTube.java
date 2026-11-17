@@ -27,7 +27,9 @@ final class InnerTube {
   private InnerTube() {}
 
   /* ---------- transporte ---------- */
-  private static JSONObject post(String endpoint, JSONObject body, String ua) throws Exception {
+  private static JSONObject post(String endpoint, JSONObject body, String ua) throws Exception { return post(endpoint, body, ua, true); }
+
+  private static JSONObject post(String endpoint, JSONObject body, String ua, boolean auth) throws Exception {
     HttpURLConnection c = (HttpURLConnection) new URL(BASE + endpoint + "?key=" + KEY + "&prettyPrint=false").openConnection();
     c.setRequestMethod("POST");
     c.setConnectTimeout(10000);
@@ -36,7 +38,7 @@ final class InnerTube {
     c.setRequestProperty("Content-Type", "application/json");
     c.setRequestProperty("User-Agent", ua);
     c.setRequestProperty("Origin", "https://music.youtube.com");
-    if (GoogleSession.cookie != null) {
+    if (auth && GoogleSession.cookie != null) {
       c.setRequestProperty("Cookie", GoogleSession.cookie);
       String auth = GoogleSession.authorization(GoogleSession.cookie, "https://music.youtube.com");
       if (auth != null) c.setRequestProperty("Authorization", auth);
@@ -166,10 +168,15 @@ final class InnerTube {
         .put("videoId", videoId)
         .put("contentCheckOk", true)
         .put("racyCheckOk", true);
-    JSONObject root = post("player", body, ANDROID_UA);
+    // Sin cookies: con la sesión iniciada YouTube pide "confirmar que no eres un robot" a esta petición.
+    JSONObject root = post("player", body, ANDROID_UA, false);
     JSONObject status = root.optJSONObject("playabilityStatus");
     if (status != null && !"OK".equals(status.optString("status"))) {
-      throw new Exception(status.optString("reason", "No reproducible"));
+      String reason = status.optString("reason", "No reproducible");
+      if (reason.toLowerCase().contains("robot") || reason.toLowerCase().contains("sign in")) {
+        throw new Exception("VERIFICACION: YouTube pidió verificación. Inténtalo más tarde.");
+      }
+      throw new Exception(reason);
     }
     JSONObject sd = root.optJSONObject("streamingData");
     if (sd == null) throw new Exception("Sin datos de streaming");
@@ -232,6 +239,7 @@ final class InnerTube {
     JSONObject root = post("browse", body, WEB_UA);
     List<JSONObject> shelves = new ArrayList<>();
     collect(root, "musicCarouselShelfRenderer", shelves);
+    collect(root, "musicImmersiveCarouselShelfRenderer", shelves);
     JSONArray out = new JSONArray();
     for (JSONObject sh : shelves) {
       JSONObject header = sh.optJSONObject("header");
