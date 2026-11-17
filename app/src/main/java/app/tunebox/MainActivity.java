@@ -19,6 +19,7 @@ import android.util.Size;
 import android.view.View;
 import android.widget.FrameLayout;
 import android.webkit.*;
+import android.webkit.CookieManager;
 import android.os.CancellationSignal;
 import androidx.annotation.NonNull;
 import androidx.credentials.ClearCredentialStateRequest;
