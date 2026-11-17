@@ -33,6 +33,11 @@ public class LoginActivity extends Activity {
         String c = cm.getCookie("https://music.youtube.com");
         if (c != null && (c.contains("SAPISID") || c.contains("__Secure-3PAPISID"))) {
           GoogleSession.save(LoginActivity.this, c);
+          // El reproductor incrustado de YouTube usa las cookies del WebView: se borran para que no
+          // lo vea como tu cuenta (eso dispara "confirma que no eres un robot"). La sesión se
+          // sigue enviando solo desde InnerTube, guardada en GoogleSession.
+          cm.removeAllCookies(null);
+          cm.flush();
           setResult(RESULT_OK);
           finish();
         }

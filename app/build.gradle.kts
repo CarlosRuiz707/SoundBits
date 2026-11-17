@@ -15,8 +15,8 @@ android {
     applicationId = "app.tunebox"
     minSdk = 24
     targetSdk = 35
-    versionCode = 30
-    versionName = "2.9.4"
+    versionCode = 32
+    versionName = "2.10.0"
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
   }

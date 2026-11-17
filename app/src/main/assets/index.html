@@ -357,6 +357,22 @@ h1,h3,#nt,.lyl,.hero2 h1,.gc .t,.lych b,.card>b:first-child,.sb-word{font-family
 .pav img{width:100%;height:100%;object-fit:cover;display:block}
 .pinfo{flex:1;min-width:0}
 .pinfo input{margin-bottom:6px}
+
+/* ===== Inicio estilo YouTube Music: bloques destacados, cuadrículas y tarjetas anchas ===== */
+.ygrid{display:grid;grid-template-columns:1fr 1fr;gap:18px 14px;margin:0 0 8px}
+.gc{min-width:0;cursor:pointer}
+.gv{width:100%;aspect-ratio:1;border-radius:12px;overflow:hidden;background:#1f1f25;margin-bottom:9px}
+.gv img{width:100%;height:100%;object-fit:cover;display:block}
+.gt{font-size:15px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ga{font-size:13px;color:#9b9ba3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:2px}
+.ybig{position:relative;border-radius:18px;overflow:hidden;margin:0 0 16px;aspect-ratio:16/11;background:#1f1f25;cursor:pointer}
+.ybv{position:absolute;inset:0}
+.ybv img{width:100%;height:100%;object-fit:cover;display:block}
+.ybt{position:absolute;left:0;right:0;bottom:0;padding:48px 18px 16px;background:linear-gradient(180deg,rgba(0,0,0,0),#000)}
+.ya{font-size:11px;letter-spacing:.9px;text-transform:uppercase;color:#cfcfd4;font-weight:600}
+.yb2{font-size:24px;font-weight:800;line-height:1.15;margin-top:4px}
+.yc.w{flex-basis:300px}
+.yhd h2{font-size:22px}
 </style>
 </head>
 <body>
@@ -613,10 +629,20 @@ function yhead(sec,pl,quick,first){var st=sec.strapline||(first?"Música para em
   av=sec.thumb?'<img class="yha" src="'+esc(sec.thumb)+'" onerror="this.remove()">':"",
   rt=quick?'<button class="ypa" data-ypa="'+pl+'">Reproducir todo</button>':(sec.browseId?'<button class="ib" data-yb="'+esc(sec.browseId)+'" data-yt2="'+esc(sec.title)+'" data-yth="'+esc(sec.thumb||"")+'" aria-label="Ver más">›</button>':"");
   return '<div class="yhd">'+av+'<div class="yht">'+(st?'<div class="ys">'+esc(st)+'</div>':'')+'<h2>'+esc(sec.title)+'</h2></div>'+rt+'</div>'}
+function ygrid(a,l,off){return '<div class="ygrid">'+a.map(function(x,i){var n=off+i;return '<div class="gc" data-yx="'+l+'_'+n+'"><div class="gv">'+yimg(x.art)+'</div><div class="gt">'+esc(x.title)+'</div><div class="ga">'+esc(x.artist||"")+'</div></div>'}).join("")+'</div>'}
+function yhero(x,l,n){return '<div class="ybig" data-yx="'+l+'_'+n+'"><div class="ybv">'+yimg(x.art)+'</div><div class="ybt"><div class="ya">'+esc(x.artist||"Destacado")+'</div><div class="yb2">'+esc(x.title)+'</div></div></div>'}
 function ysection(sec,first){var its=sec.items.slice(0,40);if(!its.length)return"";
-  var quick=its.length>=4&&its.every(function(x){return x.type=="song"}),vids=its.filter(function(x){return x.type=="video"}).length*2>=its.length,l=ylst(its);
-  return yhead(sec,l,quick,first&&quick)+(quick?yqlist(its.slice(0,16),l):ycards(its,vids))}
-window.onAuth=function(on){YH=null;YHT=0;YHE="";toast(on?"Sesión iniciada":"Sesión cerrada");if(tab=="set")render();if(tab=="home"&&!ytOpen&&!open&&!MC)render();ytHomeLoad(true)};
+  var allSong=its.length>=4&&its.every(function(x){return x.type=="song"}),
+      grid=its.length>=2&&its.every(function(x){return x.type=="album"||x.type=="playlist"}),
+      vids=its.filter(function(x){return x.type=="video"}).length*2>=its.length,
+      l=ylst(its);
+  if(allSong)return yhead(sec,l,true,first)+yqlist(its.slice(0,16),l);
+  if(grid){
+    if(first)return yhead(sec,l,false,false)+yhero(its[0],l,0)+ygrid(its.slice(1,9),l,1);
+    return yhead(sec,l,false,false)+ygrid(its.slice(0,8),l,0);
+  }
+  return yhead(sec,l,false,false)+ycards(its,vids)}
+
 function ytHomeLoad(force){if(!(ytmBase()||hasNative())||YHL)return;if(!force&&Date.now()-YHT<60000)return;YHT=Date.now();YHL=true;YHE="";
   (hasNative()?innerCall("innerHome","").then(function(d){return d.sections||[]}):ytmFetch("/home?rows=8")).then(function(d){YH={t:Date.now(),s:Array.isArray(d)?d:[]};YHL=false;try{localStorage.setItem("tb4yh",JSON.stringify(YH))}catch(e){}if(tab=="home"&&!ytOpen&&!open&&!MC)render()})
   .catch(function(e){YHE=(e&&e.message)||"Error";YHL=false;if(tab=="home"&&!ytOpen&&!open&&!MC)render()})}
