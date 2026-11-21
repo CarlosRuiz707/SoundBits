@@ -84,7 +84,7 @@ final class InnerTube {
     JSONObject body = new JSONObject()
         .put("context", webContext())
         .put("query", query)
-        .put("params", SONGS_FILTER);
+        ;
     JSONObject root = post("search", body, WEB_UA);
     JSONArray out = new JSONArray();
     JSONArray shelves = root.optJSONObject("contents") == null ? null : findShelves(root);
@@ -129,7 +129,6 @@ final class InnerTube {
               .getJSONObject("musicPlayButtonRenderer").getJSONObject("playNavigationEndpoint")
               .getJSONObject("watchEndpoint").optString("videoId", null);
     }
-    if (videoId == null) return null;
     JSONArray cols = r.getJSONArray("flexColumns");
     String title = runsText(cols.getJSONObject(0));
     String artist = cols.length() > 1 ? runsText(cols.getJSONObject(1)) : "";
@@ -137,11 +136,20 @@ final class InnerTube {
     JSONArray thumbs = r.optJSONObject("thumbnail") == null ? null :
         r.getJSONObject("thumbnail").getJSONObject("musicThumbnailRenderer").getJSONObject("thumbnail").optJSONArray("thumbnails");
     if (thumbs != null && thumbs.length() > 0) art = thumbs.getJSONObject(thumbs.length() - 1).optString("url", "");
-    return new JSONObject()
-        .put("id", videoId)
-        .put("title", title)
-        .put("artist", artist)
-        .put("art", art);
+    if (videoId == null) {
+      String bid = browseIdOf(cols.getJSONObject(0));
+      if (bid == null) return null;
+      return new JSONObject().put("type", typeOf(bid)).put("id", bid).put("title", title).put("artist", artist).put("art", art);
+    }
+    return new JSONObject().put("type", "song").put("id", videoId).put("title", title).put("artist", artist).put("art", art);
+  }
+
+  private static String browseIdOf(JSONObject col) {
+    try {
+      JSONArray runs = col.getJSONObject("musicResponsiveListItemFlexColumnRenderer").getJSONObject("text").getJSONArray("runs");
+      String bid = runs.getJSONObject(0).getJSONObject("navigationEndpoint").getJSONObject("browseEndpoint").optString("browseId", "");
+      return bid.isEmpty() ? null : bid;
+    } catch (Exception e) { return null; }
   }
 
   private static String runsText(JSONObject col) {
