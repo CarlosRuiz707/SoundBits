@@ -399,6 +399,9 @@ h1,h3,#nt,.lyl,.hero2 h1,.gc .t,.lych b,.card>b:first-child,.sb-word{font-family
 #ytp.ymin .yh span{display:none}
 #ytp.ymin .yh{padding:4px 6px;justify-content:flex-end}
 #ytmin{background:none;border:0;color:#fff;font-size:20px;line-height:1;padding:4px 10px;margin-right:2px}
+
+/* Solo audio: sin capa de vídeo ni botón de vídeo */
+#nvid,#ytp,#ytmin{display:none!important}
 </style>
 </head>
 <body>
@@ -856,7 +859,7 @@ document.addEventListener("click",function(e){var g=e.target.closest("[data-jq]"
 /* ===== YouTube: búsqueda (API oficial) + reproductor oficial incrustado en una vista nativa ===== */
 var YV={on:false,st:-1,cur:0,dur:0,pn:0,errs:0},YTR={},YTL="",YTE="",YTCUR=[];
 function dec(x){var d=document.createElement("textarea");d.innerHTML=x||"";return d.value}
-function isYT(){var t=queue[qi];return !!(t&&t.yt)}
+function isYT(){var t=queue[qi];return !!(t&&t.yt)&&ENG!="n"}
 /* ===== Motor de audio: "n" = ExoPlayer nativo (Media3), "a" = <audio> HTML, "y" = YouTube ===== */
 var ENG="a",NPQ=false,NPS={paused:true,cur:0,dur:0},LAZY=false,npVer=0,npSent=-1,npT=0,npSv=-1;
 var NPA=(function(){try{return AN&&typeof Android.npLoad=="function"}catch(e){return false}})();
@@ -999,7 +1002,7 @@ document.addEventListener("keydown",function(e){if(e.key=="Enter"&&e.target&&e.t
 /* Player */
 function play(a,i){queue=a.slice();qi=i;queueCtx=CTX;npVer++;load()}
 function load(){var t=queue[qi];if(!t)return;LAZY=false;
-  if(!t.yt&&AN&&S.vid&&isVidUrl(t.url)){t.yt="vp"+(t.k||Date.now());t.vp=1;t.vsrc=t.url}
+  if(false&&!t.yt&&AN&&S.vid&&isVidUrl(t.url)){t.yt="vp"+(t.k||Date.now());t.vp=1;t.vsrc=t.url}
   if(t.yt){npLeave("y");au.pause();ytPlay(t)}
   else{ytLeave();
     if(NPon()&&canNat(t)){au.pause();npLeave("n");npPlay(t)}
@@ -1007,8 +1010,7 @@ function load(){var t=queue[qi];if(!t)return;LAZY=false;
   afterLoad(t)}
 /* Audio nativo para YouTube: el servidor da la URL directa y ExoPlayer la reproduce; si falla, se usa el reproductor incrustado */
 function ytPlay(t){
-  if(t.vp){ytVideoPod(t);return}
-  if(!NPA||S.ytnat===false||S.vid||(!ytmBase()&&!hasNative())){ytLoad(t);return}
+  if(!NPA||S.ytnat===false||(!ytmBase()&&!hasNative())){toast("La reproducción de YouTube está disponible en la app de Android");PZ();return}
   streamFor(t.id).then(function(d){
     if(!d||!d.url)throw Error("sin stream");
     npLeave("n");ENG="n";NPQ=false;NPS.cur=0;NPS.dur=d.dur||t.dur||0;NPS.paused=false;
@@ -1087,7 +1089,7 @@ function rng(k,mn,mx,lab,u){var v=/^eq\d/.test(k)?S.eq[+k[2]]:S[k];return '<div 
 function tg(k,lab,sec){var v=sec?S.sec[k]:S[k],p=(sec?"sec.":"")+k;return '<div class="row"><div class="m" data-tg="'+p+'"><div class="t">'+lab+'</div></div><button data-tg="'+p+'" class="tgl'+(v?' on':'')+'"></button></div>'}
 var SBC=[["sponsor","Patrocinio"],["selfpromo","Autopromoción"],["interaction","Pedir interacción"],["intro","Introducción"],["outro","Final"],["preview","Avance"],["music_offtopic","Sin música"],["filler","Relleno"]];
 function sbCard(){return tg("sb","Omitir segmentos en YouTube y YouTube Music")+'<div class="a" style="margin:6px 0 4px">Qué omitir automáticamente</div><div class="chips pchips">'+SBC.map(function(c){return '<button data-sbc="'+c[0]+'" class="'+((S.sbc||[]).indexOf(c[0])>=0?'on':'')+'">'+c[1]+'</button>'}).join("")+'</div><div class="a" style="margin-bottom:8px">Usa los datos de la comunidad SponsorBlock (sponsor.ajay.app) para saltar publicidad, autopromociones y fragmentos sin música en YouTube Music y YouTube.</div>'}
-function bgCard(){return tg("vid","Mostrar vídeo cuando esté disponible")+'<div class="a" style="margin:2px 0 10px">YouTube y los podcasts con vídeo se ven en pantalla. Solo audio sigue usando el motor nativo. Se aplica a la siguiente pista.</div>'+tg("nat","Motor nativo (ExoPlayer)")+'<div class="a" style="margin:2px 0 8px">La música sigue sonando aunque Android cierre la pantalla de la app, con cola, siguiente y anterior desde la notificación. Al cambiarlo se detiene la canción actual.</div>'+tg("persist","Mantener la reproducción activa en segundo plano")+'<div class="a" style="margin:2px 0 8px">Con la pantalla apagada o la app minimizada, el servicio sigue en primer plano (también en pausa) para que Android no lo cierre. Para mayor estabilidad, excluye la app del ahorro de batería.</div><button data-batt="1">Excluir de ahorro de batería</button>'}
+function bgCard(){return tg("nat","Motor nativo (ExoPlayer)")+'<div class="a" style="margin:2px 0 8px">La música sigue sonando aunque Android cierre la pantalla de la app, con cola, siguiente y anterior desde la notificación. Al cambiarlo se detiene la canción actual.</div>'+tg("persist","Mantener la reproducción activa en segundo plano")+'<div class="a" style="margin:2px 0 8px">Con la pantalla apagada o la app minimizada, el servicio sigue en primer plano (también en pausa) para que Android no lo cierre. Para mayor estabilidad, excluye la app del ahorro de batería.</div><button data-batt="1">Excluir de ahorro de batería</button>'}
 function settingsView(){
   var pIni=esc((S.pname||"S").trim().charAt(0).toUpperCase()||"S");
   var perfil='<div class="card phero"><div class="pav" data-pfpbtn="1">'+(S.pfp?'<img src="'+S.pfp+'" alt="">':'<span>'+pIni+'</span>')+'</div><div class="pinfo"><input type="text" id="pname" value="'+esc(S.pname||"")+'" placeholder="Tu nombre" maxlength="30" autocomplete="off"><div class="a">Toca la foto para cambiarla</div></div></div><input type="file" id="pfpin" accept="image/*" data-k="pfp" style="display:none">';
