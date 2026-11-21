@@ -402,6 +402,21 @@ h1,h3,#nt,.lyl,.hero2 h1,.gc .t,.lych b,.card>b:first-child,.sb-word{font-family
 
 /* Solo audio: sin capa de vídeo ni botón de vídeo */
 #nvid,#ytp,#ytmin{display:none!important}
+
+/* ===== Reproductor completo estilo YouTube Music ===== */
+.seg{display:flex;background:#1b1b22;border-radius:999px;padding:3px;margin:0 auto}
+.seg button{background:none;border:0;color:#9b9ba3;padding:7px 18px;border-radius:999px;font-size:14px;font-weight:600}
+.seg button.on{background:#2c2c36;color:#fff}
+.pills{display:flex;gap:10px;margin:14px 0 4px;overflow-x:auto}
+.pills button{flex:none;background:#1b1b22;color:#fff;border:0;border-radius:999px;padding:10px 16px;font-size:14px;font-weight:600}
+.nptabs{display:flex;justify-content:space-around;margin:18px 0 6px;border-top:1px solid #1f1f28;padding-top:12px}
+.nptabs button{background:none;border:0;color:#8a8a94;font-size:12px;letter-spacing:.8px;font-weight:700;padding:6px}
+.nptabs button.on{color:#fff}
+.npb .card{display:none}
+.npb .card.tabon{display:block}
+#nal{display:none}
+#ytp.inart{position:relative!important;left:auto!important;right:auto!important;bottom:auto!important;width:100%!important;background:#000;border-radius:14px;overflow:hidden;z-index:auto!important}
+#ytp.inart .yh{display:none}
 </style>
 </head>
 <body>
@@ -409,12 +424,14 @@ h1,h3,#nt,.lyl,.hero2 h1,.gc .t,.lych b,.card>b:first-child,.sb-word{font-family
 <div id="main"></div>
 <div id="mini"><div class="cv" id="mcv"></div><div class="m" id="mtx"><div class="t" id="mt"></div><div class="a" id="ma"></div></div><button class="ib" id="mdv"></button><button class="ib" id="mh"></button><button class="ib" id="mp"></button><div class="pl"><i id="mpb"></i></div></div>
 <div id="np"><canvas id="cvs"></canvas><div id="npc"><div class="npt">
-  <div class="hd"><button class="ib" id="npx" style="color:#fff">⌄</button><small>REPRODUCIENDO DESDE<br><b style="color:#fff" id="nal"></b></small><button id="nvid" style="color:#fff;background:rgba(255,255,255,.14);border:0;border-radius:14px;padding:6px 10px;font-size:12px;font-weight:600">♪ Solo audio</button><button class="ib" id="nmo" style="color:#fff">⋯</button></div>
+  <div class="hd"><button class="ib" id="npx" style="color:#fff">⌄</button><small>REPRODUCIENDO DESDE<br><b style="color:#fff" id="nal"></b></small><div class="seg" id="segm"><button class="on" data-seg="s">Canción</button><button data-seg="v">Video</button></div><button class="ib" id="nmo" style="color:#fff">⋯</button></div>
   <div id="art"></div>
   <div style="display:flex;align-items:center;gap:8px"><div class="m" style="cursor:default"><div id="nt" class="t"></div><div class="a" id="na"></div></div><button class="ib" id="nh" style="font-size:26px">♡</button></div>
+  <div class="pills"><button id="pLike">♡ Me gusta</button><button id="pAdd">＋ Guardar</button></div>
   <input type="range" id="sc" min="0" max="1000" value="0"><div class="tm"><span id="tc">0:00</span><span id="td">0:00</span></div>
   <div class="ctl"><button class="ib" id="ns">⇄</button><button class="ib" id="npv">⏮</button><button class="big" id="np2">▶</button><button class="ib" id="nx">⏭</button><button class="ib" id="nr">↻</button></div>
   <div class="vl"><span>🔈</span><input type="range" id="vol" min="0" max="100" value="70"><span>🔊</span></div><div class="nbar"><button class="dv" id="bdev"><span id="bdi"></span><span class="dn" id="bdn"></span></button><span style="flex:1"></span><button class="ib" id="bdl" style="display:none" aria-label="Descargar"></button><button class="ib" id="bly" aria-label="Letra"></button><button class="ib" id="bqu" aria-label="Cola"></button></div><div class="ex"><button id="bq">Cola</button><button id="bsp">1×</button><button id="bsl">Temporizador</button><button id="bcv">Canvas ✓</button><button id="bcs">Auto</button></div></div>
+  <nav class="nptabs" id="nptabs"><button class="on" data-tab="nxq">UP NEXT</button><button data-tab="lyc">LYRICS</button><button data-tab="abt">RELATED</button></nav>
   <div class="npb">
     <div class="card" id="lyc"><div class="lych"><b>Letra</b><span class="a">Mostrar más ›</span></div><div class="lyp" id="lyp"></div></div>
     <div class="card" id="abt"></div>
@@ -910,11 +927,15 @@ window.npEv=function(str){var m;try{m=JSON.parse(str)}catch(e){return}if(!NE()||
   else if(m.e=="ended")au.dispatchEvent(new Event("ended"));
   else if(m.e=="err")au.dispatchEvent(new Event("error"))};
 au.addEventListener("pause",npSavePos);
+document.addEventListener("click",function(e){var b=e.target.closest("#nptabs [data-tab]");if(b){document.querySelectorAll("#nptabs button").forEach(function(x){x.classList.toggle("on",x===b)});document.querySelectorAll(".npb .card").forEach(function(c){c.classList.toggle("tabon",c.id==b.dataset.tab)});return}
+  var s=e.target.closest("#segm [data-seg]");if(s){vidMode(s.dataset.seg=="v");return}
+  if(e.target.closest("#pLike")){var nh=$("nh");if(nh)nh.click();return}});
 document.addEventListener("visibilitychange",function(){if(document.hidden){npSavePos();if(isYT()&&YV.on&&hasNative())ytToAudio()}});
 function ytSet(st){YV.st=st;playing=!PA();pushNow();ui()}
 function ytSend(o){if(!AN)return;try{Android.ytCmd(JSON.stringify(o))}catch(e){}}
 function ytMinBtn(){var p=$("ytp");if(!p||$("ytmin"))return;var b=document.createElement("button");b.id="ytmin";b.setAttribute("aria-label","Minimizar");b.textContent="⌄";b.onclick=function(){p.classList.add("ymin");ytLayout()};p.querySelector(".yh").insertBefore(b,$("ytx"))}
 function ytLayout(){var p=$("ytp");if(!p||p.style.display!="block")return;
+  if(p.classList.contains("inart")){var a=$("art").getBoundingClientRect(),dv=window.devicePixelRatio||1,ww=Math.round(a.width);p.style.width=ww+"px";$("ytv").style.width=ww+"px";$("ytv").style.height=Math.round(ww*9/16)+"px";var v2=$("ytv").getBoundingClientRect();try{Android.ytShow(Math.round(v2.left*dv),Math.round(v2.top*dv),Math.round(v2.width*dv),Math.round(v2.height*dv))}catch(e){}return}
   var r=$("mini").getBoundingClientRect(),mn=p.classList.contains("ymin"),w=mn?168:Math.min(innerWidth,704);
   p.style.bottom=Math.round(innerHeight-r.top+6)+"px";
   if(mn){p.style.left="auto";p.style.right="8px";p.style.width="168px"}else{p.style.left="0";p.style.right="0";p.style.width="auto"}
@@ -1027,8 +1048,16 @@ function meta(){if(!("mediaSession" in navigator)||!queue[qi])return;var t=queue
   var m=navigator.mediaSession;m.setActionHandler("play",toggle);m.setActionHandler("pause",toggle);m.setActionHandler("nexttrack",next);m.setActionHandler("previoustrack",prev);m.setActionHandler("seekto",function(d){SK(d.seekTime)})}catch(e){}}
 function setPfp(f){if(!f||!/^image\//.test(f.type))return toast("Elige una imagen");
   var r=new FileReader();r.onload=function(){var im=new Image();im.onload=function(){var c=document.createElement("canvas"),z=192,s=Math.min(im.width,im.height),sx=(im.width-s)/2,sy=(im.height-s)/2;c.width=z;c.height=z;c.getContext("2d").drawImage(im,sx,sy,s,s,0,0,z,z);S.pfp=c.toDataURL("image/jpeg",.85);svS();render();toast("Foto de perfil actualizada")};im.src=r.result};r.readAsDataURL(f)}
+/* Canción / Video: el vídeo va dentro de la carátula; el audio sigue sonando en segundo plano */
+function vidMode(on){var t=queue[qi];if(!t)return;var vid=t.yt||t.ytAud;
+  document.querySelectorAll('#segm button').forEach(function(b){b.classList.toggle('on',(b.dataset.seg=='v')==!!on)});
+  if(!vid){toast("Esta canción no tiene video");return}
+  if(on){var yp=$("ytp");if(!yp)return;t.yt=vid;npLeave("y");au.pause();yp.classList.add("inart");yp.style.display="block";$("art").appendChild(yp);
+    YV.on=true;ytLoad(t);setTimeout(ytLayout,80);setTimeout(ytLayout,400)}
+  else{var yp2=$("ytp");if(yp2){yp2.classList.remove("inart");yp2.style.display="none";document.body.appendChild(yp2)}
+    if(!ytToAudio()){toast("No hay audio disponible")}}}
 function isVidUrl(u){return /^https:\/\//.test(u||"")&&/\.(mp4|m4v|webm|m3u8)(\?|#|$)/i.test(u||"")}
-function vidLabel(){var b=$("nvid");if(b)b.textContent=S.vid?"▶ Vídeo":"♪ Solo audio"}
+function vidLabel(){}
 function ytVideoPod(t){YV.on=true;YV.st=-1;YV.cur=0;YV.dur=0;
   $("np").classList.remove("show");$("ly").classList.remove("show");$("ytp").style.display="block";$("ytp").classList.add("ymin");ytMinBtn();
   try{Android.ytVideo(t.vsrc)}catch(e){toast("No se pudo mostrar el vídeo")}
@@ -1267,7 +1296,7 @@ var REVANCED_API_BASE = "https://api.revanced.app/v4";
 window.TuneBoxAPI = { revancedBase: REVANCED_API_BASE };
 
 
-$("nvid").onclick=function(){S.vid=!S.vid;applyS();svS();vidLabel();toast(S.vid?"Vídeo activado: se aplica a la siguiente pista":"Solo audio")};
+
 </script>
 </body>
 </html>
